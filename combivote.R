@@ -135,56 +135,53 @@ Disc.quantile<-function(vect){
 
 
 
-Get_Kcut<-function(HMdnt.vector, k=4)
-{	
-    breakpoints<-c()
-    brk.mat<-c()
-    for (N in 1:100){
-	    fit <- kmeans(HMdnt.vector, k)
-		aggregate(HMdnt.vector,by=list(fit$cluster),FUN=mean)
-		cell.kmeans <- data.frame(HMdnt.vector, fit$cluster)
-	    colnames(cell.kmeans)<-c("histM", "Cst")
-#table(cell.kmeans$cluster)
-#Figure out the order of "1 2 3 4"as assigned by kmeans
-        for (i in 1:k){
-	        cluster<-cell.kmeans[cell.kmeans$Cst==i, ]
-			breakpoints<-c(breakpoints, min(cluster[,1]), max(cluster[,1]))
-		}
-		brk.s<-sort(breakpoints)
-	    breakpoints<-c()
-		brk.mat<-rbind(brk.mat,brk.s)
-	}
+Disc.kmeans<-function(mat, k=9, times=100){	
+    
+    #mat should be scaled
+    output<-c()
+    for (N in 1:times){
+        fit<-kmeans(mat, k)
 	
-    cut<-c()
-	for (i in 1:(2*k)){
-#   	k=4, breakpoints=8
-	    cut<-c(cut, median(brk.mat[,i]))
-	}
-	return (cut)
-}
+	#zhongxin has 4 rows, number of columns is ncol(mat)
+	zhongxin<-fit$centers
+	#print (zhongxin)
+	
+	zhongxin<-zhongxin[order(zhongxin[,1],zhongxin[,2]),]#depends on the ncol (mat)
+       	#cat ("Sorted centers are:\n") 
+        #print (zhongxin)
+        
+	group<-function(vect){
+            #dist() is a class not a mtrix
+            juli<-as.matrix(dist(rbind(vect, zhongxin), method="euclidean"))[-1,1]
+            g<-which(order(juli)==1)
+	    return (paste("L", as.character(g), sep=""))
+            }
+        
+        output<-cbind(output,  apply(mat, 1, group))
 
-############################
-Get_level<-function(x, vector){#vector is the cutting points
-	x.lev<-c()
-	for (i in 1:length(x)){
-		if (x[i]>=vector[1] && x[i]<=vector[2]) {
-			x.lev[i]<-"Lev0"
-		} else {
-			if (x[i]>=vector[3] && x[i]<=vector[4]){
-				x.lev[i]<-"Lev1" 
-			}  else {
-				if(x[i]>=vector[5] && x[i]<=vector[6]){
-					x.lev[i]<-"Lev2" 
-				} else {
-					if(x[i]>=vector[7] && x[i]<=vector[8]){x.lev[i]<-"Lev3" }
-				}
-			}
-		}    
-		
-	}
-	return (x.lev)
+        }  	
+
+    major<-function (x){
+        zuida<-0
+        value.max<-c()
+        geshu<-length(attr(table(x), "names"))
 	
-}
+        for (b in 1:geshu){
+            value<-attr(table(x), "names")[b]
+        
+            if (table(x)[[value]] > zuida) {
+                zuida<-table(x)[[value]]
+		value.max<-value
+                } 
+            }
+	return (value.max)
+        }
+
+    return (apply(output, 1, major))
+
+    }
+
+
 
 
 
