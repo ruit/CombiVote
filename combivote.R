@@ -5,10 +5,6 @@
 #sample(c("posi", "nega"), 1, prob=c(P(AB|"posi"), P(AB|"nega"))) 
 #might be useful in cases where features show interactions
 
-#sample partial feature pairs
-
-#divide training data into 3 equal parts
-
 #weights: random 1 or 0
 
 #suppose 100 feature pairs
@@ -17,18 +13,10 @@
 #if perf improves, keep this mutation; otherwise, keep as it was
 #move onto to next positions, in total 100 positions
 
-#Invention of a new tool is not easy!!!
-
-#input is df of dicretized data
 
 #@July 24, 2014
-# sample part of the features each time to avoid overfitting
-
-# K-means clustering to group/ discretize data based on 2 or more features
-
-# boostrap to get better estimation of conditional probabilities
-
 #@July 25, 2014, keep strong, keep fucking Japs!
+#@July 29, 2014, keep calm, ensure safety.
 
 Fill.NA <- function(mat, method=c("median", "mean")){
 #what about knn?
@@ -138,6 +126,9 @@ Disc.quantile<-function(vect){
 Disc.kmeans<-function(mat, k=9, times=100){	
     
     #mat should be scaled
+    if (!is.matrix(mat)) stop ("The input of Disc.kmeans must be matrix!")
+    mat<-scale(mat)
+
     output<-c()
     for (N in 1:times){
         fit<-kmeans(mat, k)
@@ -150,7 +141,9 @@ Disc.kmeans<-function(mat, k=9, times=100){
        	#cat ("Sorted centers are:\n") 
         #print (zhongxin)
         
+        #function to assign a point to its nearest centroid
 	group<-function(vect){
+
             #dist() is a class not a mtrix
             juli<-as.matrix(dist(rbind(vect, zhongxin), method="euclidean"))[-1,1]
             g<-which(order(juli)==1)
@@ -162,6 +155,8 @@ Disc.kmeans<-function(mat, k=9, times=100){
         }  	
 
     major<-function (x){
+        
+        #function to pick up the most frequent label
         zuida<-0
         value.max<-c()
         geshu<-length(attr(table(x), "names"))
@@ -185,8 +180,8 @@ Disc.kmeans<-function(mat, k=9, times=100){
 
 
 
-combiVote<-function(data, k=ncol(data), epsilon=0.001, ...){
-
+combiVote<-function(data, known.index=1:nrow(data), k=ncol(data), N=50, epsilon=0.001, ...){
+        #known.index is the index for instances with labels
 	#check input
 	if (is.matrix(data)) {
 		data<-as.data.frame(data)
@@ -197,54 +192,62 @@ combiVote<-function(data, k=ncol(data), epsilon=0.001, ...){
 		stop ("Input must be either matrix or dataframe!")
 		}	
 
-	#partition data into 3 parts, train1, train2, test
-	labels<-names(table(data[,k]))
+	#discretize the data, train and test data together!
+        pair<-c()
+        triple<-c()
+        disc.fea<-c()
+
+        for (j in 1:N){
+	    er<-sample((1:ncol(data))[-k], 2)
+            pair<-rbind(pair, er)
+            disc.fea<-cbind(disc.fea,Disc.kmeans(as.matrix(data[,er]), k=9, times=100))
+
+            san<-sample((1:ncol(data))[-k], 3)
+            triple<-rbind(triple, san)
+	    disc.fea<-cbind(disc.fea, Disc.kmeans(as.matrix(data[,san]), k=25, times=100))
+            }
+
+
+        #partition data into train and test
+        #check this!
+	labels<-names(table(data[known.index,k]))
 	train1_index<-c()
 	for (i in 1:length(labels)){
 		num<-nrow(data[data[,k]==labels[i],])
 		index<-which(data[,k]==labels[i])
 		train1_index<-c(train1_index,
-			sample(index, round(num/3, 0)))	
+			sample(index, round(num/2, 0)))	
 		
 		}
 
-	train1Data<-data[train1_index,]
-	rest<-data[-train1_index,]
 
-	train2_index<-sample(1:nrow(rest), round(0.5*nrow(rest), 0))
-	train2Data<-rest[train2_index,]
-
-	testData<-rest[-train2_index,]
 	###################check above!##################
-	
-	#train for the 1st round
+	#boostrap to get a better estimation of conditional probs
+        train<-sample(train1_index, 10*length(train1_index), replace=T)
+       
+        two.col<-sample((1:ncol(disc.fea)), 2) 
+        biao<-table(disc.fea[train,two.col], data[train,k])
 
-	modelOne<-naiveBayes(train1Data[,-k], train1Data[,k])	
-	ori.model<-modelOne
+        #focus on binary classfication first!
+        labels<-names(table(data[known.index,k]))
 
-	biaoxian<-function (alpha, modelOne=modelOne){
-		for (i in 1:length(modelOne$tables)){
-                        modelNew$tables[[i]]<-alpha[i]*modelOne$tables[[i]]###for discrete data only!!!!
-                        }
-		modelOne<-modelNew
-		ptable<-table(predict(modelOne, train2Data[,-k], type="class"),train2Data[,k])
-		p1<-ptable[1, 1]/sum(ptable[,1])
-		p2<-ptable[2,2]/sum(ptable[,2]) 
-		perf1<-0.5*(p1+p2)/((p1-p2)^2+1)	
-		return (perf1)
-		}
-	
-	
-	#train for the 2nd round 
-	# assign a stochastic weight to each feature sequentially using uniform distribution
-		result <- optimize(biaoxian, c(0,1))
-		
-		#updated modelOne
-		#orginal modeloriginal
-		#w<-result$alpha
-		#opt.model<-ori.model
-		#for (i in 1:length(modelOne$tables)){
-                 #       opt.model$tables[[i]]<-w[i]*ori.model$tables[[i]]###for discrete data only!!!!
-                 #       }
-		return (result)
+        probs<-c() 
+        max.p<-c()
+	good.i<-c()
+        for (i in 1:length(labels)){
+            somevalue<-biao[disc.fea[m,two.col[1]], disc.fea[m, two.col[2]], labels[i]]/sum(biao[disc.fea[,,labels[i]]])
+            probs<-c(probs, somevalue)
+	    if (max.p < somevalue) {
+                max.p<-somevalue
+                good.i<-i
+                }   
+            }
+        
+        #return (sample(labels, 1, prob=probs))
+
+
+
+
+
+
 	}
