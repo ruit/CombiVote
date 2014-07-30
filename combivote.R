@@ -1,6 +1,10 @@
 #Tian R. <tianremi@gmail.com>
 #July 23, 2014
 
+#require glmnet
+#familiy="Binomial" or "Multinomial"
+#alpha=1, means L1 lasso penalty
+
 #each P(AB|C) is a weak classifier
 #sample(c("posi", "nega"), 1, prob=c(P(AB|"posi"), P(AB|"nega"))) 
 #might be useful in cases where features show interactions
@@ -17,6 +21,8 @@
 #@July 24, 2014
 #@July 25, 2014, keep strong, keep fucking Japs!
 #@July 29, 2014, keep calm, ensure safety.
+#@July 30, 2014, make every good hour, each day, week!
+
 
 Fill.NA <- function(mat, method=c("median", "mean")){
 #what about knn?
@@ -180,7 +186,10 @@ Disc.kmeans<-function(mat, k=9, times=100){
 
 
 
-combiVote<-function(data, known.index=1:nrow(data), k=ncol(data), N=50, epsilon=0.001, ...){
+combiVote<-function(data, known.index=1:nrow(data), 
+                    k=ncol(data), N=50, npairs=100, 
+                    epsilon=0.001, ...){
+        
         #known.index is the index for instances with labels
 	#check input
 	if (is.matrix(data)) {
@@ -225,29 +234,56 @@ combiVote<-function(data, known.index=1:nrow(data), k=ncol(data), N=50, epsilon=
 	#boostrap to get a better estimation of conditional probs
         train<-sample(train1_index, 10*length(train1_index), replace=T)
        
-        two.col<-sample((1:ncol(disc.fea)), 2) 
-        biao<-table(disc.fea[train,two.col], data[train,k])
-
-        #focus on binary classfication first!
-        labels<-names(table(data[known.index,k]))
-
-        probs<-c() 
-        max.p<-c()
-	good.i<-c()
-        for (i in 1:length(labels)){
-            somevalue<-biao[disc.fea[m,two.col[1]], disc.fea[m, two.col[2]], labels[i]]/sum(biao[disc.fea[,,labels[i]]])
-            probs<-c(probs, somevalue)
-	    if (max.p < somevalue) {
-                max.p<-somevalue
-                good.i<-i
-                }   
-            }
+        #make multiple classifier based on feature pairs.
+        pred<-c()
+        for (q in 1:npairs){
         
-        #return (sample(labels, 1, prob=probs))
+        #100
+        two.col<-sample((1:ncol(disc.fea)), 2) 
+        
+        classify<-function (f1.val, f2.val){
+            biao<-table(disc.fea[train,two.col], data[train,k])
+
+            #focus on binary classfication first!
+            labels<-names(table(data[known.index,k]))
+
+            probs<-c() 
+            max.p<-c()
+	    good.i<-c()
+            for (i in 1:length(labels)){
+	        #disc.fea[m,two.col[1]], disc.fea[m, two.col[2]],
+                somevalue<-biao[f1.val, f2.val, labels[i]]/sum(biao[disc.fea[,,labels[i]]])
+                probs<-c(probs, somevalue)
+	        if (max.p < somevalue) {
+                    max.p<-somevalue
+                    good.i<-i
+                    }   
+                }
+        
+            return (sample(labels, 1, prob=probs))
+            }
+
+           pred<-cbind(pred, apply(disc.fea[, two.col], 1, classify))
+	   }
+     return(pred)
+    }
 
 
 
 
 
+report<-function (pred, known.index, real.labels, 
+                 output=c("class", "prob"), assign.weights=TRUE){
+    
 
-	}
+
+
+    }
+
+
+
+
+
+#http://stats.stackexchange.com/questions/72251/an-example-lasso-regression-using-glmnet-for-binary-outcome
+#http://blog.revolutionanalytics.com/2013/05/hastie-glmnet.html
+
