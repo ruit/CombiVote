@@ -272,6 +272,11 @@ combiVote<-function(data, known.index=1:nrow(data),
 
 
 
+#######################
+###Aug11, 2014, Live For yourself first!
+###Use lasso regression for boost
+#######################
+
 report<-function (pred, known.index, real.labels, 
                  output=c("class", "prob"), assign.weights=TRUE){
     
