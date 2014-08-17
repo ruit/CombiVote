@@ -271,19 +271,51 @@ combiVote<-function(data, known.index=1:nrow(data),
 
 
 
+###################################################################
+###Use lasso regression to boost multiple classfiers
+###Aug 12, 2014
+###Aug 17, 2014
+##################################################################
+# require (glmnet)
+pred<-c("N","N","N","P")
+pred<-rbind(pred, rep("P", 4))
+pred<-rbind(pred, c("N","N","P","P"))
+
+know.index<-1:3
+
+real.labels<-c("N","P","P")
 
 report<-function (pred, known.index, real.labels, 
                  output=c("class", "prob"), assign.weights=TRUE){
+    #if match.arg(output)=="class"    
+    library(glmnet)
+        
+    #assigh dummy variable to pred
     
-
-
+    pred.mat<-matrix(0, nrow(pred), ncol(pred))
+    
+    pred.mat[pred=="posi"] <- 1
+    pred.mat[pred=="nega"] <- -1 
+   
+    cv.glmmod <- cv.glmnet(x=pred.mat[known.index,], y=as.factor(real.labels),alpha=1, family="binomial")
+    
+    best_lambda <- cv.glmmod$lambda.min
+    
+    glmmod<-glmnett(x=pred.mat, y=as.factor(real.labels),alpha=1,family='binomial')
+    
+    corrected.pred<-predict(glmmod, s=best_lambda, newx=pred[-known.index,])
+    
+    if (output=="class"){
+        return (corrected.pred)
+        }
+ 
+    else if (output == "prob") {
+        }
 
     }
 
 
 
-
-
 #http://stats.stackexchange.com/questions/72251/an-example-lasso-regression-using-glmnet-for-binary-outcome
 #http://blog.revolutionanalytics.com/2013/05/hastie-glmnet.html
-
+#http://www-stat.wharton.upenn.edu/~stine/mich/lasso.R
