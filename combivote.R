@@ -285,6 +285,11 @@ know.index<-1:3
 
 real.labels<-c("N","P","P")
 
+#######################
+###Aug11, 2014, Live For yourself first!
+###Use lasso regression for boost
+#######################
+
 report<-function (pred, known.index, real.labels, 
                  output=c("class", "prob"), assign.weights=TRUE){
     #if match.arg(output)=="class"    
