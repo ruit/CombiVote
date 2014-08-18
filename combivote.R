@@ -291,7 +291,7 @@ real.labels<-c("N","P","P")
 #######################
 
 report<-function (pred, known.index, real.labels, 
-                 output=c("class", "prob"), assign.weights=TRUE){
+                 output=c("class", "prob")){
     #if match.arg(output)=="class"    
     library(glmnet)
         
@@ -306,7 +306,7 @@ report<-function (pred, known.index, real.labels,
     
     best_lambda <- cv.glmmod$lambda.min
     
-    glmmod<-glmnett(x=pred.mat, y=as.factor(real.labels),alpha=1,family='binomial')
+    glmmod<-glmnet(x=pred.mat[known.index,], y=as.factor(real.labels),alpha=1,family='binomial')
     
     corrected.pred<-predict(glmmod, s=best_lambda, newx=pred[-known.index,])
     
