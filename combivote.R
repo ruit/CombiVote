@@ -275,15 +275,16 @@ combiVote<-function(data, known.index=1:nrow(data),
 ###Use lasso regression to boost multiple classfiers
 ###Aug 12, 2014
 ###Aug 17, 2014
+###Aug 18, 2014 Must be tested!
 ##################################################################
 # require (glmnet)
-pred<-c("N","N","N","P")
-pred<-rbind(pred, rep("P", 4))
-pred<-rbind(pred, c("N","N","P","P"))
+#pred<-c("N","N","N","P")
+#pred<-rbind(pred, rep("P", 4))
+#pred<-rbind(pred, c("N","N","P","P"))
 
-know.index<-1:3
+#know.index<-1:3
 
-real.labels<-c("N","P","P")
+#real.labels<-c("N","P","P")
 
 #######################
 ###Aug11, 2014, Live For yourself first!
